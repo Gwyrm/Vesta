@@ -5,31 +5,50 @@ import {
   formatDate,
   DAY_NAMES,
   MONTH_NAMES,
+  DAY_TEMPLATES,
+  POST_TYPES,
+  POST_LABELS,
   getFrenchHolidays,
 } from './scheduler.js';
 
-// ─── Structure des lignes ─────────────────────────────────────────────────────
+// ─── Lignes de postes ────────────────────────────────────────────────────────
 //
-// Reprend le format de référence :
-//   • Ligne 1  : noms des jours (chaque jour fusionne AM+PM)
-//   • Ligne 2  : "Semaine DD MMMM" | AM PM AM PM …
-//   • Ligne 3  : Avis (fusionne AM+PM par jour — rôle journalier)
-//   • Lignes + : postes techniques avec AM et PM séparés
+// On génère dynamiquement les lignes en fonction du nombre maximal
+// d'occurrences de chaque type dans une demi-journée (à travers tous les jours).
+// Ex. IRMDigestive apparaît 2 fois jeudi après-midi → 2 lignes.
 //
 // Une feuille Excel par semaine, nommée "sem DD - MM".
-//
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Lignes de postes techniques (label, type interne, numéro de slot dans la période)
-const POST_ROWS = [
-  { label: 'Scanner 1', type: 'Scanner', slot: 0 },
-  { label: 'Scanner 2', type: 'Scanner', slot: 1 },
-  { label: 'IRM 1',     type: 'IRM',     slot: 0 },
-  { label: 'IRM 2',     type: 'IRM',     slot: 1 },
-  { label: 'IRM 3',     type: 'IRM',     slot: 2 },
-  { label: 'Écho',      type: 'Echo',    slot: 0 },
-  { label: 'RCP',       type: 'RCP',     slot: 0 },
-];
+function computePostRows() {
+  const maxOccurrences = Object.fromEntries(POST_TYPES.map(t => [t, 0]));
+  for (const dow of [1, 2, 3, 4, 5]) {
+    const tmpl = DAY_TEMPLATES[dow];
+    for (const period of ['morning', 'afternoon']) {
+      const counts = {};
+      for (const t of tmpl[period]) counts[t] = (counts[t] ?? 0) + 1;
+      for (const [t, c] of Object.entries(counts)) {
+        if (c > maxOccurrences[t]) maxOccurrences[t] = c;
+      }
+    }
+  }
+
+  const rows = [];
+  for (const t of POST_TYPES) {
+    const count = maxOccurrences[t];
+    if (count === 0) continue;
+    if (count === 1) {
+      rows.push({ label: POST_LABELS[t], type: t, slot: 0 });
+    } else {
+      for (let i = 0; i < count; i++) {
+        rows.push({ label: `${POST_LABELS[t]} ${i + 1}`, type: t, slot: i });
+      }
+    }
+  }
+  return rows;
+}
+
+const POST_ROWS = computePostRows();
 
 export function exportXLSX(schedule, staff, year, month) {
   const weekdays = getWeekdays(year, month);
@@ -39,7 +58,7 @@ export function exportXLSX(schedule, staff, year, month) {
 
   const wb = XLSX.utils.book_new();
 
-  weeks.forEach((weekDays, wi) => {
+  weeks.forEach((weekDays) => {
     const firstDay  = weekDays[0];
     const weekLabel = `Semaine ${firstDay.getDate()} ${MONTH_NAMES[month - 1]}`;
 
@@ -51,7 +70,7 @@ export function exportXLSX(schedule, staff, year, month) {
       const label     = isHoliday
         ? `${DAY_NAMES[day.getDay()]} ${day.getDate()} — ${holidays.get(dateStr)}`
         : `${DAY_NAMES[day.getDay()]} ${day.getDate()}`;
-      row1.push(label, ''); // AM col + PM col (fusionnés)
+      row1.push(label, '');
     });
 
     // ── Ligne 2 : sous-en-têtes AM / PM ───────────────────────────────────
@@ -67,12 +86,11 @@ export function exportXLSX(schedule, staff, year, month) {
       if (!d || isHoliday) {
         avisRow.push(isHoliday ? 'Férié' : '', '');
       } else {
-        // Nom dans la cellule AM, fusionnée avec PM
         avisRow.push(getName(d.avis), '');
       }
     });
 
-    // ── Lignes de postes (Scanner, IRM, Écho, RCP) ────────────────────────
+    // ── Lignes de postes ──────────────────────────────────────────────────
     const postRowsData = POST_ROWS.map(({ label, type, slot }) => {
       const row = [label];
       weekDays.forEach(day => {
@@ -83,7 +101,6 @@ export function exportXLSX(schedule, staff, year, month) {
           row.push('', '');
           return;
         }
-        // nth poste de ce type dans chaque période
         const get = period => {
           const matches = d[period].filter(p => p.type === type);
           return getName(matches[slot]?.staffId ?? null);
@@ -102,19 +119,16 @@ export function exportXLSX(schedule, staff, year, month) {
     weekDays.forEach((_, i) => {
       const amCol = 1 + i * 2;
       const pmCol = amCol + 1;
-      // Ligne 1 : fusion du nom du jour sur AM+PM (row index 0)
       ws['!merges'].push({ s: { r: 0, c: amCol }, e: { r: 0, c: pmCol } });
-      // Ligne 3 : fusion Avis sur AM+PM (row index 2)
       ws['!merges'].push({ s: { r: 2, c: amCol }, e: { r: 2, c: pmCol } });
     });
 
     // ── Largeurs des colonnes ─────────────────────────────────────────────
     ws['!cols'] = [
-      { wch: 12 },                                 // Colonne A : label
-      ...weekDays.flatMap(() => [{ wch: 20 }, { wch: 20 }]), // AM + PM par jour
+      { wch: 16 },
+      ...weekDays.flatMap(() => [{ wch: 20 }, { wch: 20 }]),
     ];
 
-    // ── Nom de la feuille : "sem DD - MM" ─────────────────────────────────
     const sheetName = `sem ${String(firstDay.getDate()).padStart(2, '0')} - ${String(month).padStart(2, '0')}`;
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });

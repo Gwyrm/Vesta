@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Calendar, Users, BarChart2, Download, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Calendar, Users, BarChart2, Download, RefreshCw, AlertTriangle, Lock } from 'lucide-react';
 import StaffManager from './components/StaffManager.jsx';
 import ScheduleView from './components/ScheduleView.jsx';
 import ScheduleViewExterne from './components/ScheduleViewExterne.jsx';
@@ -46,11 +46,14 @@ export default function App() {
   const [externeTab,  setExterneTab]  = useState('planning');
 
   // ── État planning internes ────────────────────────────────────────────────
-  const [year,      setYear]      = useState(today.getFullYear());
-  const [month,     setMonth]     = useState(today.getMonth() + 1);
-  const [schedule,  setSchedule]  = useState({});
-  const [workloads, setWorkloads] = useState({});
-  const [spinning,  setSpinning]  = useState(false);
+  const [year,         setYear]         = useState(today.getFullYear());
+  const [month,        setMonth]        = useState(today.getMonth() + 1);
+  const [schedule,     setSchedule]     = useState({});
+  const [workloads,    setWorkloads]    = useState({});
+  const [spinning,     setSpinning]     = useState(false);
+  const [locks,        setLocks]        = useState({}); // verrous manuels
+  const [offs,         setOffs]         = useState({}); // demi-journées « off »
+  const [hasGenerated, setHasGenerated] = useState(false);
 
   // ── État planning externes ────────────────────────────────────────────────
   const [externeStartDate,  setExterneStartDate]  = useState(() => getMondayOf(today));
@@ -67,7 +70,19 @@ export default function App() {
   useEffect(() => {
     setSchedule({});
     setWorkloads({});
+    setLocks({});
+    setOffs({});
+    setHasGenerated(false);
   }, [year, month]);
+
+  // ── Régénération automatique quand les verrous ou les « off » changent ────
+  useEffect(() => {
+    if (!hasGenerated) return;
+    const result = generateSchedule(interneStaff, year, month, locks, offs);
+    setSchedule(result.schedule);
+    setWorkloads(result.workloads);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locks, offs]);
 
   useEffect(() => {
     setExterneSchedule({});
@@ -93,12 +108,73 @@ export default function App() {
   const handleGenerateInterne = useCallback(() => {
     setSpinning(true);
     setTimeout(() => {
-      const result = generateSchedule(interneStaff, year, month);
+      const result = generateSchedule(interneStaff, year, month, locks, offs);
       setSchedule(result.schedule);
       setWorkloads(result.workloads);
+      setHasGenerated(true);
       setSpinning(false);
     }, 60);
-  }, [interneStaff, year, month]);
+  }, [interneStaff, year, month, locks, offs]);
+
+  // ── Mise à jour d'un verrou (slot manuel) ─────────────────────────────────
+  const setSlotLock = useCallback((dateStr, kind, period, idx, staffId) => {
+    setLocks(prev => {
+      const next = { ...prev };
+      const day  = { ...(next[dateStr] ?? {}) };
+      if (kind === 'avis') {
+        day.avis = staffId;
+      } else {
+        const periodLocks = { ...(day[period] ?? {}) };
+        periodLocks[idx] = staffId;
+        day[period] = periodLocks;
+      }
+      next[dateStr] = day;
+      return next;
+    });
+  }, []);
+
+  // ── Suppression d'un verrou ───────────────────────────────────────────────
+  const unsetSlotLock = useCallback((dateStr, kind, period, idx) => {
+    setLocks(prev => {
+      if (!prev[dateStr]) return prev;
+      const next = { ...prev };
+      const day  = { ...next[dateStr] };
+      if (kind === 'avis') {
+        delete day.avis;
+      } else if (day[period]) {
+        const periodLocks = { ...day[period] };
+        delete periodLocks[idx];
+        if (Object.keys(periodLocks).length === 0) {
+          delete day[period];
+        } else {
+          day[period] = periodLocks;
+        }
+      }
+      if (Object.keys(day).length === 0) {
+        delete next[dateStr];
+      } else {
+        next[dateStr] = day;
+      }
+      return next;
+    });
+  }, []);
+
+  // ── Toggle d'une demi-journée « off » pour une personne ───────────────────
+  const toggleOff = useCallback((staffId, dateStr, period) => {
+    const key = `${staffId}::${dateStr}-${period}`;
+    setOffs(prev => {
+      const next = { ...prev };
+      if (next[key]) delete next[key];
+      else next[key] = true;
+      return next;
+    });
+  }, []);
+
+  // ── Effacement de toutes les modifications manuelles ──────────────────────
+  const handleClearLocks = useCallback(() => {
+    setLocks({});
+    setOffs({});
+  }, []);
 
   // ── Génération planning externes ──────────────────────────────────────────
   const handleGenerateExterne = useCallback(() => {
@@ -124,6 +200,14 @@ export default function App() {
   const yearOptions        = Array.from({ length: 7 }, (_, i) => today.getFullYear() - 3 + i);
   const subTab             = mainTab === 'internes' ? interneTab : externeTab;
   const setSubTab          = mainTab === 'internes' ? setInterneTab : setExterneTab;
+  const lockCount          = Object.values(locks).reduce((sum, day) => {
+    let n = 0;
+    if (day.avis !== undefined) n++;
+    n += Object.keys(day.morning   ?? {}).length;
+    n += Object.keys(day.afternoon ?? {}).length;
+    return sum + n;
+  }, 0);
+  const offCount = Object.keys(offs).length;
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -170,6 +254,20 @@ export default function App() {
                   <RefreshCw className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} />
                   Générer
                 </button>
+                {(lockCount > 0 || offCount > 0) && (
+                  <button
+                    onClick={handleClearLocks}
+                    title="Réinitialiser tous les verrous et les demi-journées off"
+                    className="flex items-center gap-1.5 bg-white border border-amber-300 hover:bg-amber-50
+                               text-amber-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Lock className="w-3.5 h-3.5" />
+                    Effacer mes modifs
+                    <span className="bg-amber-100 text-amber-700 text-[10px] rounded-full px-1.5 py-0.5 font-semibold">
+                      {lockCount + offCount}
+                    </span>
+                  </button>
+                )}
                 {hasInterneSchedule && (
                   <button
                     onClick={() => exportXLSX(schedule, interneStaff, year, month)}
@@ -279,7 +377,11 @@ export default function App() {
                 staff={interneStaff}
                 year={year}
                 month={month}
-                onScheduleChange={setSchedule}
+                locks={locks}
+                offs={offs}
+                onSetLock={setSlotLock}
+                onUnsetLock={unsetSlotLock}
+                onToggleOff={toggleOff}
               />
             )}
             {subTab === 'staff' && (

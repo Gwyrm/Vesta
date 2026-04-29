@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Calendar, ChevronDown, AlertCircle } from 'lucide-react';
+import { Calendar, ChevronDown, AlertCircle, Lock, Coffee } from 'lucide-react';
 import {
   getWeekdays,
   groupByWeek,
@@ -8,11 +8,15 @@ import {
   MONTH_NAMES,
   DAY_TEMPLATES,
   POST_STYLES,
+  POST_LABELS,
+  POST_FAMILY,
+  FAMILY_STYLES,
+  FAMILY_LABELS,
   getFrenchHolidays,
 } from '../scheduler.js';
 
 // ─── Inline assignment selector ───────────────────────────────────────────────
-function AssignSelect({ staffId, allStaff, onAssign, onClose }) {
+function AssignSelect({ staffId, allStaff, isLocked, onAssign, onUnlock, onClose }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -23,7 +27,12 @@ function AssignSelect({ staffId, allStaff, onAssign, onClose }) {
     <select
       ref={ref}
       defaultValue={staffId ?? ''}
-      onChange={e => { onAssign(e.target.value || null); onClose(); }}
+      onChange={e => {
+        const v = e.target.value;
+        if (v === '__unlock__') onUnlock?.();
+        else onAssign(v || null);
+        onClose();
+      }}
       onBlur={onClose}
       className="w-full text-xs border border-blue-400 rounded-md px-1.5 py-1 bg-white
                  focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
@@ -32,27 +41,33 @@ function AssignSelect({ staffId, allStaff, onAssign, onClose }) {
       {allStaff.map(s => (
         <option key={s.id} value={s.id}>{s.name}</option>
       ))}
+      {isLocked && (
+        <option value="__unlock__">↩︎ Déverrouiller (auto)</option>
+      )}
     </select>
   );
 }
 
 // ─── Single post badge ────────────────────────────────────────────────────────
-function PostBadge({ type, staffId, staffName, isAvis, allStaff, onAssign }) {
+function PostBadge({ type, staffId, staffName, isAvis, isLocked, allStaff, onAssign, onUnlock }) {
   const [editing, setEditing] = useState(false);
-  const style = POST_STYLES[isAvis ? 'Avis' : type] ?? POST_STYLES.Scanner;
-  const label = isAvis ? 'Avis' : type;
+  const style = POST_STYLES[isAvis ? 'Avis' : type] ?? FAMILY_STYLES.Scanner;
+  const label = isAvis ? 'Avis' : (POST_LABELS[type] ?? type);
   const isEmpty = !staffId;
 
   return (
-    <div className={`rounded-md border px-2 py-1 ${style.bg} ${style.border} cursor-pointer`}
+    <div className={`rounded-md border px-2 py-1 cursor-pointer ${style.bg}
+                     ${isLocked ? 'border-amber-400 ring-1 ring-amber-200' : style.border}`}
          onClick={() => setEditing(true)}
-         title="Cliquer pour modifier l'assignation"
+         title={isLocked ? 'Verrouillé manuellement — cliquer pour modifier' : 'Cliquer pour modifier l\'assignation'}
     >
       {editing ? (
         <AssignSelect
           staffId={staffId}
           allStaff={allStaff}
+          isLocked={isLocked}
           onAssign={onAssign}
+          onUnlock={onUnlock}
           onClose={() => setEditing(false)}
         />
       ) : (
@@ -62,6 +77,7 @@ function PostBadge({ type, staffId, staffName, isAvis, allStaff, onAssign }) {
           <span className={`text-[11px] truncate ${isEmpty ? 'text-red-400 italic' : 'text-slate-600'}`}>
             {isEmpty ? 'non assigné' : staffName}
           </span>
+          {isLocked && <Lock className="w-2.5 h-2.5 shrink-0 text-amber-500" />}
           <ChevronDown className={`w-3 h-3 shrink-0 ${style.text} opacity-50`} />
         </div>
       )}
@@ -69,8 +85,68 @@ function PostBadge({ type, staffId, staffName, isAvis, allStaff, onAssign }) {
   );
 }
 
+// ─── Off toggle (per-person, per-half-day) ────────────────────────────────────
+function OffToggle({ staff, dateStr, period, offs, onToggleOff }) {
+  const [open, setOpen] = useState(false);
+
+  // Liste des personnes off cette demi-journée
+  const offHere = staff.filter(s => offs[`${s.id}::${dateStr}-${period}`]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`w-full flex items-center justify-between gap-1 text-[10px] px-1.5 py-0.5
+                    rounded border transition-colors
+                    ${offHere.length > 0
+                      ? 'bg-slate-100 border-slate-300 text-slate-700'
+                      : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-50'}`}
+        title="Marquer une personne « off » sur cette demi-journée"
+      >
+        <span className="flex items-center gap-1 truncate">
+          <Coffee className="w-2.5 h-2.5 shrink-0" />
+          {offHere.length === 0
+            ? <span className="italic">Off…</span>
+            : <span className="truncate">{offHere.map(s => s.name.split(' ').pop()).join(', ')}</span>}
+        </span>
+        <ChevronDown className="w-2.5 h-2.5 shrink-0 opacity-50" />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-md shadow-lg p-1 max-h-48 overflow-y-auto">
+            {staff.length === 0 ? (
+              <p className="text-[10px] text-slate-400 italic p-1">Aucun personnel</p>
+            ) : staff.map(s => {
+              const key = `${s.id}::${dateStr}-${period}`;
+              const isOff = !!offs[key];
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => onToggleOff(s.id, dateStr, period)}
+                  className={`w-full flex items-center gap-1.5 text-[11px] px-1.5 py-1 rounded
+                              hover:bg-slate-50 ${isOff ? 'bg-slate-100 font-semibold' : ''}`}
+                >
+                  <span className={`w-2 h-2 rounded shrink-0 ${isOff ? 'bg-slate-500' : 'border border-slate-300'}`} />
+                  <span className="truncate text-left flex-1">{s.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── One day column ───────────────────────────────────────────────────────────
-function DayColumn({ day, dateStr, dayData, holidayName, staff, month, onUpdateAvis, onUpdatePost }) {
+function DayColumn({
+  day, dateStr, dayData, holidayName, staff, month,
+  dayLocks, offs,
+  onSetLock, onUnsetLock, onToggleOff,
+}) {
   const getStaffName = id => staff.find(s => s.id === id)?.name ?? null;
   const isToday   = formatDate(new Date()) === dateStr;
   const isHoliday = Boolean(holidayName);
@@ -90,6 +166,10 @@ function DayColumn({ day, dateStr, dayData, holidayName, staff, month, onUpdateA
       </div>
     );
   }
+
+  const avisLocked = dayLocks?.avis !== undefined;
+  const morningLocks   = dayLocks?.morning   ?? {};
+  const afternoonLocks = dayLocks?.afternoon ?? {};
 
   return (
     <div className={`p-3 flex flex-col gap-2 min-h-[220px] ${isToday ? 'bg-blue-50/40' : ''}`}>
@@ -114,8 +194,10 @@ function DayColumn({ day, dateStr, dayData, holidayName, staff, month, onUpdateA
             isAvis
             staffId={dayData.avis}
             staffName={getStaffName(dayData.avis)}
+            isLocked={avisLocked}
             allStaff={staff}
-            onAssign={id => onUpdateAvis(dateStr, id)}
+            onAssign={id => onSetLock(dateStr, 'avis', null, null, id)}
+            onUnlock={() => onUnsetLock(dateStr, 'avis', null, null)}
           />
 
           {/* Morning */}
@@ -128,10 +210,19 @@ function DayColumn({ day, dateStr, dayData, holidayName, staff, month, onUpdateA
                   type={post.type}
                   staffId={post.staffId}
                   staffName={getStaffName(post.staffId)}
+                  isLocked={i in morningLocks}
                   allStaff={staff}
-                  onAssign={id => onUpdatePost(dateStr, 'morning', i, id)}
+                  onAssign={id => onSetLock(dateStr, 'post', 'morning', i, id)}
+                  onUnlock={() => onUnsetLock(dateStr, 'post', 'morning', i)}
                 />
               ))}
+              <OffToggle
+                staff={staff}
+                dateStr={dateStr}
+                period="morning"
+                offs={offs}
+                onToggleOff={onToggleOff}
+              />
             </div>
           </div>
 
@@ -145,10 +236,19 @@ function DayColumn({ day, dateStr, dayData, holidayName, staff, month, onUpdateA
                   type={post.type}
                   staffId={post.staffId}
                   staffName={getStaffName(post.staffId)}
+                  isLocked={i in afternoonLocks}
                   allStaff={staff}
-                  onAssign={id => onUpdatePost(dateStr, 'afternoon', i, id)}
+                  onAssign={id => onSetLock(dateStr, 'post', 'afternoon', i, id)}
+                  onUnlock={() => onUnsetLock(dateStr, 'post', 'afternoon', i)}
                 />
               ))}
+              <OffToggle
+                staff={staff}
+                dateStr={dateStr}
+                period="afternoon"
+                offs={offs}
+                onToggleOff={onToggleOff}
+              />
             </div>
           </div>
         </>
@@ -159,44 +259,41 @@ function DayColumn({ day, dateStr, dayData, holidayName, staff, month, onUpdateA
 
 // ─── Legend strip ─────────────────────────────────────────────────────────────
 function Legend() {
+  const families = ['Scanner', 'IRM', 'Echo', 'RCP', 'Avis'];
   return (
     <div className="flex flex-wrap gap-2">
-      {Object.entries(POST_STYLES).map(([type, s]) => (
-        <span key={type}
-          className={`flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1
-                      rounded-full border ${s.bg} ${s.border} ${s.text}`}>
-          <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-          {type}
-        </span>
-      ))}
+      {families.map(fam => {
+        const s = FAMILY_STYLES[fam];
+        return (
+          <span key={fam}
+            className={`flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1
+                        rounded-full border ${s.bg} ${s.border} ${s.text}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
+            {FAMILY_LABELS[fam]}
+          </span>
+        );
+      })}
+      <span className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1
+                       rounded-full border bg-amber-50 border-amber-200 text-amber-700">
+        <Lock className="w-3 h-3" />
+        Verrouillé
+      </span>
       <span className="text-[11px] text-slate-400 self-center ml-1">
-        Cliquer sur une assignation pour la modifier
+        Cliquer une assignation pour la modifier ; le reste se régénère
       </span>
     </div>
   );
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-export default function ScheduleView({ schedule, staff, year, month, onScheduleChange }) {
+export default function ScheduleView({
+  schedule, staff, year, month,
+  locks = {}, offs = {},
+  onSetLock, onUnsetLock, onToggleOff,
+}) {
   const weekdays = getWeekdays(year, month);
   const weeks    = groupByWeek(weekdays);
   const holidays = getFrenchHolidays(year);
-
-  // ── Mutation helpers ──────────────────────────────────────────────────────
-  const updateAvis = (dateStr, newId) => {
-    onScheduleChange(prev => ({
-      ...prev,
-      [dateStr]: { ...prev[dateStr], avis: newId },
-    }));
-  };
-
-  const updatePost = (dateStr, period, index, newId) => {
-    onScheduleChange(prev => {
-      const posts = [...prev[dateStr][period]];
-      posts[index] = { ...posts[index], staffId: newId };
-      return { ...prev, [dateStr]: { ...prev[dateStr], [period]: posts } };
-    });
-  };
 
   // ── Empty state ───────────────────────────────────────────────────────────
   if (!Object.keys(schedule).length) {
@@ -222,11 +319,15 @@ export default function ScheduleView({ schedule, staff, year, month, onScheduleC
                 <p className="font-semibold text-slate-700 mb-1">{DAY_NAMES[dow]}</p>
                 <p className="text-slate-400 mb-0.5 font-medium uppercase text-[10px]">Matin</p>
                 {tmpl.morning.map((t, i) => (
-                  <p key={i} className={`${POST_STYLES[t]?.text ?? 'text-slate-600'}`}>{t}</p>
+                  <p key={i} className={`${POST_STYLES[t]?.text ?? 'text-slate-600'}`}>
+                    {POST_LABELS[t] ?? t}
+                  </p>
                 ))}
                 <p className="text-slate-400 mt-1 mb-0.5 font-medium uppercase text-[10px]">PM</p>
                 {tmpl.afternoon.map((t, i) => (
-                  <p key={i} className={`${POST_STYLES[t]?.text ?? 'text-slate-600'}`}>{t}</p>
+                  <p key={i} className={`${POST_STYLES[t]?.text ?? 'text-slate-600'}`}>
+                    {POST_LABELS[t] ?? t}
+                  </p>
                 ))}
               </div>
             );
@@ -297,8 +398,11 @@ export default function ScheduleView({ schedule, staff, year, month, onScheduleC
                     holidayName={holidays.get(dateStr) ?? null}
                     staff={staff}
                     month={month}
-                    onUpdateAvis={updateAvis}
-                    onUpdatePost={updatePost}
+                    dayLocks={locks[dateStr]}
+                    offs={offs}
+                    onSetLock={onSetLock}
+                    onUnsetLock={onUnsetLock}
+                    onToggleOff={onToggleOff}
                   />
                 );
               })}

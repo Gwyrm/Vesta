@@ -9,24 +9,89 @@ export const MONTH_NAMES = [
   'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
 ];
 
-/**
- * Posts per day-of-week (1=Mon … 5=Fri).
- * Arrays can contain duplicate types (e.g. Tuesday morning has two Scanners).
- */
-export const DAY_TEMPLATES = {
-  1: { morning: ['Scanner', 'IRM'],           afternoon: ['Scanner', 'RCP'] },
-  2: { morning: ['Scanner', 'Scanner', 'IRM'], afternoon: ['Echo', 'Scanner'] },
-  3: { morning: ['Scanner'],                   afternoon: ['Scanner', 'RCP'] },
-  4: { morning: ['Scanner', 'RCP'],            afternoon: ['IRM', 'IRM', 'IRM'] },
-  5: { morning: ['Echo', 'Scanner'],           afternoon: ['Echo', 'Scanner', 'IRM'] },
+// ─── Postes (spécialisés) ────────────────────────────────────────────────────
+
+export const POST_TYPES = [
+  'ScannerDigestif', 'ScannerUrologique',
+  'IRMDigestive',    'IRMUrologique',
+  'EchoDigestive',   'EchoUrologique',
+  'RCPDigestive',    'RCPUrologique',  'RCPFoie',
+];
+
+export const POST_LABELS = {
+  ScannerDigestif:   'Scanner dig.',
+  ScannerUrologique: 'Scanner uro.',
+  IRMDigestive:      'IRM dig.',
+  IRMUrologique:     'IRM uro.',
+  EchoDigestive:     'Écho dig.',
+  EchoUrologique:    'Écho uro.',
+  RCPDigestive:      'RCP dig.',
+  RCPUrologique:     'RCP uro.',
+  RCPFoie:           'RCP foie',
+  Avis:              'Avis',
 };
 
+export const POST_FAMILY = {
+  ScannerDigestif:   'Scanner',
+  ScannerUrologique: 'Scanner',
+  IRMDigestive:      'IRM',
+  IRMUrologique:     'IRM',
+  EchoDigestive:     'Echo',
+  EchoUrologique:    'Echo',
+  RCPDigestive:      'RCP',
+  RCPUrologique:     'RCP',
+  RCPFoie:           'RCP',
+};
+
+export const FAMILY_LABELS = {
+  Scanner: 'Scanner',
+  IRM:     'IRM',
+  Echo:    'Écho',
+  RCP:     'RCP',
+  Avis:    'Avis',
+};
+
+/**
+ * Postes par jour de semaine (1=Lun … 5=Ven).
+ * Les postes peuvent apparaître plusieurs fois (ex. jeudi après-midi = 2 IRM digestives).
+ */
+export const DAY_TEMPLATES = {
+  1: { // Lundi
+    morning:   ['ScannerDigestif', 'IRMUrologique'],
+    afternoon: ['ScannerDigestif', 'RCPUrologique'],
+  },
+  2: { // Mardi
+    morning:   ['ScannerDigestif', 'ScannerUrologique', 'IRMDigestive'],
+    afternoon: ['EchoDigestive', 'ScannerDigestif'],
+  },
+  3: { // Mercredi
+    morning:   ['ScannerUrologique'],
+    afternoon: ['ScannerDigestif', 'RCPDigestive'],
+  },
+  4: { // Jeudi
+    morning:   ['ScannerDigestif', 'RCPFoie'],
+    afternoon: ['IRMDigestive', 'IRMDigestive', 'IRMUrologique'],
+  },
+  5: { // Vendredi
+    morning:   ['EchoDigestive', 'ScannerUrologique'],
+    afternoon: ['EchoUrologique', 'ScannerDigestif', 'IRMDigestive'],
+  },
+};
+
+// ─── Styles (par famille, avec alias par type spécialisé) ────────────────────
+
+export const FAMILY_STYLES = {
+  Scanner: { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200',    dot: 'bg-blue-500',    badge: 'bg-blue-100 text-blue-700'    },
+  IRM:     { bg: 'bg-violet-50',  text: 'text-violet-700',  border: 'border-violet-200',  dot: 'bg-violet-500',  badge: 'bg-violet-100 text-violet-700' },
+  Echo:    { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700'},
+  RCP:     { bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200',  dot: 'bg-orange-500',  badge: 'bg-orange-100 text-orange-700' },
+  Avis:    { bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',   dot: 'bg-amber-500',   badge: 'bg-amber-100 text-amber-700'   },
+};
+
+// Compatibilité : permet à ScheduleView de récupérer le style à partir du type spécialisé ou « Avis »
 export const POST_STYLES = {
-  Scanner: { bg: 'bg-blue-50',   text: 'text-blue-700',   border: 'border-blue-200',   dot: 'bg-blue-500'   },
-  IRM:     { bg: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', dot: 'bg-violet-500' },
-  Echo:    { bg: 'bg-emerald-50',text: 'text-emerald-700',border: 'border-emerald-200',dot: 'bg-emerald-500'},
-  RCP:     { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-200', dot: 'bg-orange-500' },
-  Avis:    { bg: 'bg-amber-50',  text: 'text-amber-700',  border: 'border-amber-200',  dot: 'bg-amber-500'  },
+  ...Object.fromEntries(POST_TYPES.map(t => [t, FAMILY_STYLES[POST_FAMILY[t]]])),
+  Avis: FAMILY_STYLES.Avis,
 };
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -39,7 +104,7 @@ export function formatDate(date) {
   );
 }
 
-/** All Mon–Fri dates in the given month. */
+/** Toutes les dates lun–ven du mois donné. */
 export function getWeekdays(year, month) {
   const days = [];
   const d = new Date(year, month - 1, 1);
@@ -52,8 +117,8 @@ export function getWeekdays(year, month) {
 }
 
 /**
- * Group weekdays into Mon–Fri chunks.
- * A new group starts whenever we hit a Monday (or the very first day).
+ * Regroupe les jours par semaine (chaque sous-tableau commence par un lundi
+ * — ou par le premier jour si le mois ne commence pas un lundi).
  */
 export function groupByWeek(weekdays) {
   const weeks = [];
@@ -85,7 +150,7 @@ function easterSunday(year) {
   const k = c % 4;
   const l = (32 + 2 * e + 2 * i - h - k) % 7;
   const m = Math.floor((a + 11 * h + 22 * l) / 451);
-  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1; // 0-indexé
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
   const day   = ((h + l - 7 * m + 114) % 31) + 1;
   return new Date(year, month, day);
 }
@@ -96,10 +161,6 @@ function shiftDays(date, n) {
   return d;
 }
 
-/**
- * Retourne une Map<dateStr, nomFérié> pour l'année donnée.
- * Inclut tous les jours fériés légaux en France métropolitaine.
- */
 export function getFrenchHolidays(year) {
   const map   = new Map();
   const add   = (d, name) => map.set(formatDate(d), name);
@@ -123,47 +184,54 @@ export function getFrenchHolidays(year) {
   return map;
 }
 
-// ─── Scheduler ───────────────────────────────────────────────────────────────
+// ─── ISO week (key stable across year boundaries) ────────────────────────────
 
-/**
- * Build an ISO-week key that is stable across year boundaries.
- * Uses the Monday of the week as the canonical anchor.
- */
 function isoWeekKey(date) {
   const d = new Date(date);
-  // shift to the Monday of this week
   const dow = d.getDay() === 0 ? 7 : d.getDay();
   d.setDate(d.getDate() - dow + 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+// ─── Scheduler ───────────────────────────────────────────────────────────────
+
+function makeWorkload() {
+  const w = { avis: 0, total: 0 };
+  for (const t of POST_TYPES) w[t] = 0;
+  return w;
+}
+
 /**
- * Main scheduling function.
- *
- * Returns { schedule, workloads } where:
+ * Génération principale du planning internes.
  *
  *   schedule[dateStr] = {
  *     avis: staffId | null,
- *     avisPeriod: 'morning' | 'afternoon' | null,
- *     morning: [{ type, staffId }],
+ *     avisPeriod: 'morning' | 'afternoon' | null,    // période avec scanner/IRM
+ *     avisRcpPeriod: 'morning' | 'afternoon' | null, // période avec RCP (si jour RCP)
+ *     morning:   [{ type, staffId }],
  *     afternoon: [{ type, staffId }],
  *   }
+ *   workloads[staffId] = { ScannerDigestif, …, RCPFoie, avis, total }
  *
- *   workloads[staffId] = { scanner, irm, echo, rcp, avis, total }
+ * `locks` (optionnel) — verrous manuels :
+ *   locks[dateStr] = {
+ *     avis?:        staffId | null,    // null = explicitement non assigné
+ *     morning?:     { [idx]: staffId | null },
+ *     afternoon?:   { [idx]: staffId | null },
+ *   }
+ *
+ * `offs` (optionnel) — demi-journées « off » imposées par l'utilisateur, sous
+ * forme `{ "<staffId>::YYYY-MM-DD-morning": true, … }` (similaire aux absences).
  */
-export function generateSchedule(staff, year, month) {
+export function generateSchedule(staff, year, month, locks = {}, offs = {}) {
   if (!staff.length) return { schedule: {}, workloads: {} };
 
   const weekdays = getWeekdays(year, month);
   const holidays = getFrenchHolidays(year);
 
-  // ── Workload counters ──────────────────────────────────────────────────────
-  const workloads = Object.fromEntries(
-    staff.map(s => [s.id, { scanner: 0, irm: 0, echo: 0, rcp: 0, avis: 0, total: 0 }])
-  );
+  const workloads = Object.fromEntries(staff.map(s => [s.id, makeWorkload()]));
 
-  // ── Weekly half-day budget: max 8 used per person per week (≥ 2 free) ──────
-  // Key: `${staffId}::${isoWeekKey}`  →  count of half-days consumed
+  // ── Budget hebdomadaire (max 8 demi-journées utilisées par personne) ──
   const weekBudget = {};
   const budgetKey  = (id, date) => `${id}::${isoWeekKey(date)}`;
   const getUsed    = (id, date) => weekBudget[budgetKey(id, date)] || 0;
@@ -172,191 +240,245 @@ export function generateSchedule(staff, year, month) {
     weekBudget[k] = (weekBudget[k] || 0) + n;
   };
 
-  // ── Absence helper ────────────────────────────────────────────────────────
-  const isAbsent = (person, dateStr, period) =>
-    person.absences.includes(`${dateStr}-${period}`);
+  // ── Compteur d'avis par semaine ──
+  const weeklyAvis = {};
+  const avisWeekKey = (id, date) => `${id}::${isoWeekKey(date)}`;
+  const getAvisWeek = (id, date) => weeklyAvis[avisWeekKey(id, date)] || 0;
+  const incAvisWeek = (id, date) => {
+    const k = avisWeekKey(id, date);
+    weeklyAvis[k] = (weeklyAvis[k] || 0) + 1;
+  };
 
-  // ── Result ────────────────────────────────────────────────────────────────
+  // ── Jour précédent (pour interdire 2 avis consécutifs si possible) ──
+  let prevAvisId = null;
+
+  // ── Helpers ──
+  const isAbsent = (person, dateStr, period) =>
+    person.absences?.includes(`${dateStr}-${period}`);
+  const isOff = (staffId, dateStr, period) =>
+    !!offs[`${staffId}::${dateStr}-${period}`];
+  const personById = id => staff.find(s => s.id === id) ?? null;
+
   const schedule = {};
 
-  // ─────────────────────────────────────────────────────────────────────────
   for (const day of weekdays) {
     const dateStr = formatDate(day);
-    if (holidays.has(dateStr)) continue; // jour férié : personne ne travaille
-    const tmpl    = DAY_TEMPLATES[day.getDay()];
+    if (holidays.has(dateStr)) continue;
+    const tmpl     = DAY_TEMPLATES[day.getDay()];
+    const dayLocks = locks[dateStr] ?? {};
 
-    // Compute per-person availability snapshot for this day
-    // avail[id] = { morning: bool, afternoon: bool, absMorning: bool, absAfternoon: bool }
+    // ── Disponibilité par personne ──────────────────────────────────────────
     const avail = {};
     for (const s of staff) {
       const abM  = isAbsent(s, dateStr, 'morning');
       const abA  = isAbsent(s, dateStr, 'afternoon');
+      const offM = isOff(s.id, dateStr, 'morning');
+      const offA = isOff(s.id, dateStr, 'afternoon');
       const used = getUsed(s.id, day);
       avail[s.id] = {
-        morning:     !abM && used < 8,
-        afternoon:   !abA && used < 8,
-        absMorning:  abM,
+        morning:      !abM && !offM && used < 8,
+        afternoon:    !abA && !offA && used < 8,
+        absMorning:   abM,
         absAfternoon: abA,
+        offMorning:   offM,
+        offAfternoon: offA,
       };
     }
 
-    // ── 1. Select AVIS ──────────────────────────────────────────────────────
-    // Eligible: has at least one free half-day AND enough weekly budget left
-    const avisEligible = staff.filter(s => {
-      const a = avail[s.id];
-      if (!a.morning && !a.afternoon) return false;
-      // Avis consumes both present half-days from the weekly budget
-      const consume = (!a.absMorning ? 1 : 0) + (!a.absAfternoon ? 1 : 0);
-      return getUsed(s.id, day) + consume <= 8;
-    });
+    // ── Détermination des périodes pour l'avis ──────────────────────────────
+    // Règles :
+    //   • avis posté sur 1 poste Scanner/IRM, dans une seule période (préférence : matin)
+    //   • si un RCP existe ce jour : avis aussi posté sur RCP, dans l'autre période
+    //   • si Scanner/IRM ET RCP sont sur la même période, l'avis prend RCP cette
+    //     période et Scanner/IRM dans l'autre
+    const familiesIn = period => new Set(tmpl[period].map(t => POST_FAMILY[t]));
+    const morningFams   = familiesIn('morning');
+    const afternoonFams = familiesIn('afternoon');
+    const morningHasSI    = morningFams.has('Scanner')   || morningFams.has('IRM');
+    const afternoonHasSI  = afternoonFams.has('Scanner') || afternoonFams.has('IRM');
+    const morningHasRCP   = morningFams.has('RCP');
+    const afternoonHasRCP = afternoonFams.has('RCP');
+    const dayHasRCP       = morningHasRCP || afternoonHasRCP;
 
-    let avisId     = null;
-    let avisPeriod = null;
+    let mainPeriod = null;  // période où l'avis prend Scanner/IRM
+    let rcpPeriod  = null;  // période où l'avis prend RCP (si jour RCP)
 
-    if (avisEligible.length > 0) {
-      // Pick person with fewest avis, then fewest total posts (tie-break by name)
-      avisEligible.sort((a, b) => {
+    if (dayHasRCP) {
+      if (afternoonHasRCP && !morningHasRCP && morningHasSI) {
+        mainPeriod = 'morning';   rcpPeriod = 'afternoon';
+      } else if (morningHasRCP && !afternoonHasRCP && afternoonHasSI) {
+        mainPeriod = 'afternoon'; rcpPeriod = 'morning';
+      } else if (morningHasRCP && afternoonHasSI) {
+        mainPeriod = 'afternoon'; rcpPeriod = 'morning';
+      } else if (afternoonHasRCP && morningHasSI) {
+        mainPeriod = 'morning';   rcpPeriod = 'afternoon';
+      } else {
+        // Cas dégénéré
+        mainPeriod = morningHasSI ? 'morning' : (afternoonHasSI ? 'afternoon' : null);
+        rcpPeriod  = morningHasRCP ? 'morning' : 'afternoon';
+        if (mainPeriod === rcpPeriod) mainPeriod = null;
+      }
+    } else {
+      mainPeriod = morningHasSI ? 'morning' : (afternoonHasSI ? 'afternoon' : null);
+      rcpPeriod  = null;
+    }
+
+    // ── Sélection de la personne d'avis ─────────────────────────────────────
+    let avisId       = null;
+    let avisLockUsed = false;
+
+    if (dayLocks.avis !== undefined) {
+      avisLockUsed = true;
+      avisId = dayLocks.avis;
+      if (avisId && !personById(avisId)) avisId = null;
+    } else if (mainPeriod) {
+      // Eligibilité :
+      //   • rôle ≠ 'socle'
+      //   • mainPeriod disponible
+      //   • si jour RCP : rcpPeriod aussi disponible
+      let candidates = staff.filter(s => {
+        if (s.role === 'socle') return false;
+        const a = avail[s.id];
+        if (!a[mainPeriod]) return false;
+        if (rcpPeriod && !a[rcpPeriod]) return false;
+        const consume = (!a.absMorning && !a.offMorning ? 1 : 0)
+                      + (!a.absAfternoon && !a.offAfternoon ? 1 : 0);
+        return getUsed(s.id, day) + consume <= 8;
+      });
+
+      candidates.sort((a, b) => {
+        // Soft : préférer ceux qui n'ont pas atteint 2 avis cette semaine
+        const aOver = getAvisWeek(a.id, day) >= 2 ? 1 : 0;
+        const bOver = getAvisWeek(b.id, day) >= 2 ? 1 : 0;
+        if (aOver !== bOver) return aOver - bOver;
+
+        // Soft : éviter 2 jours consécutifs
+        const aPrev = a.id === prevAvisId ? 1 : 0;
+        const bPrev = b.id === prevAvisId ? 1 : 0;
+        if (aPrev !== bPrev) return aPrev - bPrev;
+
         const da = workloads[a.id].avis - workloads[b.id].avis;
         if (da !== 0) return da;
+
         const dt = workloads[a.id].total - workloads[b.id].total;
         if (dt !== 0) return dt;
+
         return a.name.localeCompare(b.name);
       });
 
-      const avisPerson = avisEligible[0];
-      avisId = avisPerson.id;
-      workloads[avisId].avis++;
-
-      // Decide which period the avis person is POSTED on:
-      //   1. Prefer afternoon if it has RCP
-      //   2. Prefer morning if it has RCP
-      //   3. Otherwise pick the period where they lag most in workload
-      const a         = avail[avisId];
-      const afHasRCP  = tmpl.afternoon.includes('RCP');
-      const mHasRCP   = tmpl.morning.includes('RCP');
-
-      if      (afHasRCP && a.afternoon) avisPeriod = 'afternoon';
-      else if (mHasRCP  && a.morning)   avisPeriod = 'morning';
-      else if (a.morning && a.afternoon) {
-        // pick the period where current workload for those post-types is lower
-        const mScore = tmpl.morning.reduce(
-          (sum, t) => sum + workloads[avisId][t.toLowerCase()], 0
-        );
-        const aScore = tmpl.afternoon.reduce(
-          (sum, t) => sum + workloads[avisId][t.toLowerCase()], 0
-        );
-        avisPeriod = mScore <= aScore ? 'morning' : 'afternoon';
-      } else {
-        avisPeriod = a.morning ? 'morning' : 'afternoon';
-      }
-
-      // Consume weekly budget for BOTH present half-days (neither is truly free)
-      if (!a.absMorning)    addUsed(avisId, day);
-      if (!a.absAfternoon)  addUsed(avisId, day);
-
-      // Restrict avis person: they can only appear in their assigned period
-      avail[avisId] = {
-        ...a,
-        morning:   avisPeriod === 'morning'   && !a.absMorning,
-        afternoon: avisPeriod === 'afternoon' && !a.absAfternoon,
-      };
+      avisId = candidates[0]?.id ?? null;
     }
 
-    // ── 2. Assign posts (morning then afternoon) ─────────────────────────────
+    // Si auto-sélection et avis pas dispo dans une période requise → pas d'avis
+    if (avisId && !avisLockUsed) {
+      const a = avail[avisId];
+      if (mainPeriod && !a[mainPeriod]) avisId = null;
+      else if (rcpPeriod && !a[rcpPeriod]) avisId = null;
+    }
+
+    let avisPeriod    = null;
+    let avisRcpPeriod = null;
+
+    if (avisId) {
+      avisPeriod    = mainPeriod;
+      avisRcpPeriod = rcpPeriod;
+
+      workloads[avisId].avis++;
+      incAvisWeek(avisId, day);
+
+      const a = avail[avisId];
+      if (!a.absMorning   && !a.offMorning)   addUsed(avisId, day);
+      if (!a.absAfternoon && !a.offAfternoon) addUsed(avisId, day);
+    }
+
+    // ── Pré-positionnement des slots avis ───────────────────────────────────
     const scannerToday = new Set();
 
-    // ── Pre-assign the avis person's guaranteed slot ──────────────────────────
-    // Rule 1 : avis person CANNOT be posted on Echo.
-    //   Slot priority: RCP → first non-Echo slot → nothing (all-Echo, edge case).
-    // Rule 2 : if the chosen slot is RCP, the avis person MAY ALSO be posted on
-    //   Scanner or IRM in the OTHER half-day of the same day.
-    let avisSlotPeriod = null;
-    let avisSlotIdx    = -1;
-    let avisSlotType   = null;
-    let avisCanDoOther = false; // unlocked by Rule 2
-
-    if (avisId && avisPeriod && avail[avisId][avisPeriod]) {
-      const periodPosts = tmpl[avisPeriod];
-      // Prefer RCP, then first non-Echo slot (Rule 1: skip Echo)
-      let idx = periodPosts.findIndex(t => t === 'RCP');
-      if (idx === -1) idx = periodPosts.findIndex(t => t !== 'Echo');
-
-      if (idx >= 0) {
-        avisSlotPeriod = avisPeriod;
-        avisSlotIdx    = idx;
-        avisSlotType   = periodPosts[idx];
-        workloads[avisId][avisSlotType.toLowerCase()]++;
-        workloads[avisId].total++;
-        if (avisSlotType === 'Scanner') scannerToday.add(avisId);
-        // Rule 2: RCP post unlocks the other half-day for Scanner/IRM
-        if (avisSlotType === 'RCP') avisCanDoOther = true;
-        // Note: weekly budget for BOTH half-days was already consumed above.
-      }
+    let avisSIIdx = -1;
+    if (avisId && avisPeriod) {
+      avisSIIdx = tmpl[avisPeriod].findIndex(t => {
+        const fam = POST_FAMILY[t];
+        return fam === 'Scanner' || fam === 'IRM';
+      });
+    }
+    let avisRcpIdx = -1;
+    if (avisId && avisRcpPeriod) {
+      avisRcpIdx = tmpl[avisRcpPeriod].findIndex(t => POST_FAMILY[t] === 'RCP');
     }
 
-    // Rule 3 — processing priority when staff is short:
-    //   Echo (0) > Scanner (1) > RCP (2) > IRM (3)
-    //   Slots are processed in this order so that if candidates run out,
-    //   IRM slots are the ones left unassigned, not Echo/Scanner.
-    const POST_PRIORITY = { Echo: 0, Scanner: 1, RCP: 2, IRM: 3 };
+    // ── Assignation des postes ──────────────────────────────────────────────
+    const FAMILY_PRIORITY = { Echo: 0, Scanner: 1, RCP: 2, IRM: 3 };
 
     const assignPosts = (postTypes, period) => {
       const usedThisPeriod = new Set();
       const results = new Array(postTypes.length).fill(null);
+      const periodLocks = dayLocks[period] ?? {};
 
-      // Pre-fill the avis person's guaranteed slot (prevents them being pushed out).
-      // Exception socle : le slot avis est exempté de la règle de supervision —
-      // ce jour-là le socle est considéré supervisé par le radiologue référent.
-      if (avisSlotPeriod === period && avisSlotIdx >= 0) {
-        results[avisSlotIdx] = { type: avisSlotType, staffId: avisId };
-        usedThisPeriod.add(avisId);
-        // Si l'avis person est un interne, les socles pourront être assignés
-        // sur les autres slots de cette période sans problème.
+      // 1) Verrous manuels d'abord
+      for (let idx = 0; idx < postTypes.length; idx++) {
+        if (idx in periodLocks) {
+          const lockedId = periodLocks[idx];
+          results[idx] = { type: postTypes[idx], staffId: lockedId };
+          if (lockedId) {
+            usedThisPeriod.add(lockedId);
+            workloads[lockedId][postTypes[idx]]++;
+            workloads[lockedId].total++;
+            if (POST_FAMILY[postTypes[idx]] === 'Scanner') scannerToday.add(lockedId);
+            if (lockedId !== avisId) addUsed(lockedId, day);
+          }
+        }
       }
 
-      // Sort slots by priority so Echo/Scanner are filled before IRM (Rule 3)
+      // 2) Pré-place le slot Scanner/IRM de l'avis
+      if (avisId && period === avisPeriod && avisSIIdx >= 0
+          && results[avisSIIdx] === null) {
+        const t = postTypes[avisSIIdx];
+        results[avisSIIdx] = { type: t, staffId: avisId };
+        usedThisPeriod.add(avisId);
+        workloads[avisId][t]++;
+        workloads[avisId].total++;
+        if (POST_FAMILY[t] === 'Scanner') scannerToday.add(avisId);
+      }
+
+      // 3) Pré-place le slot RCP de l'avis
+      if (avisId && period === avisRcpPeriod && avisRcpIdx >= 0
+          && results[avisRcpIdx] === null) {
+        const t = postTypes[avisRcpIdx];
+        results[avisRcpIdx] = { type: t, staffId: avisId };
+        usedThisPeriod.add(avisId);
+        workloads[avisId][t]++;
+        workloads[avisId].total++;
+      }
+
+      // 4) Tri des slots restants par priorité famille (Echo > Scanner > RCP > IRM)
       const order = postTypes
-        .map((type, idx) => ({ type, idx }))
-        .sort((a, b) => (POST_PRIORITY[a.type] ?? 99) - (POST_PRIORITY[b.type] ?? 99));
+        .map((type, idx) => ({ type, idx, family: POST_FAMILY[type] }))
+        .filter(o => results[o.idx] === null)
+        .sort((a, b) =>
+          (FAMILY_PRIORITY[a.family] ?? 99) - (FAMILY_PRIORITY[b.family] ?? 99)
+        );
 
-      for (const { type: postType, idx } of order) {
-        if (results[idx] !== null) continue; // already pre-filled
-
+      for (const { type: postType, idx, family } of order) {
         let candidates = staff.filter(s => {
           if (usedThisPeriod.has(s.id)) return false;
-
-          // ── Avis person special handling ──
-          if (s.id === avisId) {
-            // Their own period: slot is already pre-filled above, skip
-            if (avisSlotPeriod === period) return false;
-            // Other period (Rule 2): only Scanner/IRM, only if not absent there
-            if (avisCanDoOther) {
-              const absKey = period === 'morning' ? 'absMorning' : 'absAfternoon';
-              if (avail[avisId][absKey]) return false;          // absent this period
-              return postType === 'Scanner' || postType === 'IRM'; // Rule 1 implied (no Echo)
-            }
-            return false;
-          }
-
-          // Regular person
+          if (s.id === avisId) return false; // déjà placé(e) sur ses slots
           if (!avail[s.id][period]) return false;
           return true;
         });
 
-        // Règle socle : une personne 'socle' ne peut être postée sur un poste
-        // non-Echo que si au moins un 'interne' est déjà assigné dans cette
-        // même demi-journée (supervision obligatoire).
-        if (postType !== 'Echo') {
+        // Règle socle : poste ≠ Echo et ≠ IRM → supervision par un interne
+        // déjà posté dans la même période
+        if (family !== 'Echo' && family !== 'IRM') {
           const internInPeriod = [...usedThisPeriod].some(
-            id => staff.find(s => s.id === id)?.role === 'intern'
+            id => personById(id)?.role === 'intern'
           );
           if (!internInPeriod) {
             candidates = candidates.filter(s => s.role !== 'socle');
           }
         }
 
-        // Soft rule: avoid a second Scanner for the same person in the same day
-        if (postType === 'Scanner') {
+        // Soft : éviter 2 scanners pour la même personne sur la même journée
+        if (family === 'Scanner') {
           const pref = candidates.filter(s => !scannerToday.has(s.id));
           if (pref.length > 0) candidates = pref;
         }
@@ -366,10 +488,8 @@ export function generateSchedule(staff, year, month) {
           continue;
         }
 
-        // Pick the person with the lowest workload for this post type
         candidates.sort((a, b) => {
-          const tk = postType.toLowerCase();
-          const dt = workloads[a.id][tk] - workloads[b.id][tk];
+          const dt = workloads[a.id][postType] - workloads[b.id][postType];
           if (dt !== 0) return dt;
           const dd = workloads[a.id].total - workloads[b.id].total;
           if (dd !== 0) return dd;
@@ -379,18 +499,13 @@ export function generateSchedule(staff, year, month) {
         const sel = candidates[0];
         results[idx] = { type: postType, staffId: sel.id };
         usedThisPeriod.add(sel.id);
-        workloads[sel.id][postType.toLowerCase()]++;
+        workloads[sel.id][postType]++;
         workloads[sel.id].total++;
-        if (postType === 'Scanner') scannerToday.add(sel.id);
+        if (family === 'Scanner') scannerToday.add(sel.id);
 
-        // Consume weekly budget.
-        // Avis person's budget was already consumed for both half-days at avis selection;
-        // if they appear here via Rule 2, no extra charge is needed.
-        if (sel.id !== avisId) {
-          addUsed(sel.id, day);
-          if (period === 'morning' && getUsed(sel.id, day) >= 8) {
-            avail[sel.id].afternoon = false;
-          }
+        addUsed(sel.id, day);
+        if (period === 'morning' && getUsed(sel.id, day) >= 8) {
+          avail[sel.id].afternoon = false;
         }
       }
 
@@ -401,11 +516,14 @@ export function generateSchedule(staff, year, month) {
     const afternoonPosts = assignPosts(tmpl.afternoon, 'afternoon');
 
     schedule[dateStr] = {
-      avis:       avisId,
+      avis:          avisId,
       avisPeriod,
-      morning:    morningPosts,
-      afternoon:  afternoonPosts,
+      avisRcpPeriod,
+      morning:       morningPosts,
+      afternoon:     afternoonPosts,
     };
+
+    if (avisId) prevAvisId = avisId;
   }
 
   return { schedule, workloads };

@@ -1,0 +1,51 @@
+
+Régles internes : 
+- Le planning est à faire pour un mois, du lundi (inclus) au vendredi (inclus) chaque semaine
+- Chaque jour est décomposé en demi-journées, avec un nombre de postes différents à remplir par demi-journées
+- Le lundi comprend : un poste de scanner et un poste d'IRM le matin ; un poste de scanner et un poste de RCP l'après-midi
+- Le mardi comprend : deux postes de scanner et un poste d'IRM le matin ; un poste d'échographie et un poste de scanner l'après-midi
+- Le mercredi comprend : un poste de scanner le matin ; un poste de scanner et un poste de RCP l'après-midi
+- Le jeudi comprend : un poste de scanner et un poste de RCP le matin ; trois postes d'IRM l'après-midi
+- Le vendredi comprend : un poste d'échographie et un poste de scanner le matin ; un poste d'échographie, un poste de scanner et un poste d'IRM l'après-midi
+- Une personne ne peut être postée que sur un poste à la fois
+- Si cela est possible, une personne ne peut pas être postée à deux postes de scanner sur la même journée
+- En plus de ces postes, une personne doit être notée "d'avis" tous les jours
+- La personne notée "d'avis" sur une journée doit également être postée sur un poste de scanner ou d'IRM le matin ou l'après-midi, mais pas le matin et l'après-midi
+- La personne notée "d'avis" doit également être postée sur un poste de RCP sur la demi-journée où elle n'est pas au scanner ou à l'IRM si un poste de RCP est disponible
+- Si la personne notée "d'avis" est postée sur un poste de RCP, elle ne peut pas être postée sur un poste de scanner ou d'IRM sur la même demi-journée que son poste de RCP
+- La personne notée "d'avis" ne peut pas être postée sur un poste d'échographie en même temps
+- Il faut équilibrer les postes d'échographie, de scanner, d'IRM et de RCP et les jours notées "d'avis" pour que chaque personne fasse environ le même nombre sur le mois
+- Si une personne est notée "absente" pour une demi-journée, elle ne peut pas être notée "d'avis" ou être postée sur cette demi-journée
+- Chaque personne doit avoir au moins 2 demi-journées où elle n'est pas notée "d'avis" ou postée par semaine, en essayant d'équilibrer le nombre de ces demi-journées pour que chaque personne ait environ le même nombre par semaine
+- S'il n'y a pas assez de personnes pour remplir tous les postes, il faut privilégier les postes d'échographie et de scanner aux postes d'IRM
+- La personne "socle" ne peut pas être postée seule mais seulement avec une autre personne "interne", sauf sur un poste d'échographie ou d'IRM
+
+Règles externes :
+- Le planning est à faire pour une période de 6 semaines, du lundi (inclus) au vendredi (inclus) chaque semaine
+- Chaque jour est décomposé en demi-journées, avec un nombre de postes différents par demi-journées
+- Tous les matins, il y a un poste de radiographie pédiatrique et un poste d'échographie des urgences
+- Tous les après-midis, il y a un poste de radiographie thoracique, un poste de radiographie ostéo-articulaire et un poste d'échographie pédiatrique
+- Le mercredi toute la journée, il y a un poste de radiologie interventionnelle
+- En plus de ces postes, il y a des postes spécifiques :
+- Le lundi matin : scanner ostéoarticulaire, scanner digestif, scanner thoracique, IRM neuro
+- Le lundi après-midi : échographie ostéoarticulaire, scanner digestif, scanner thoracique
+- Le mardi matin : cours avec M. Rémond, IRM neuro
+- Le mardi après-midi : échographie digestive, scanner ostéoarticulaire, IRM neuro
+- Le mercredi matin : scanner ostéoarticulaire, IRM neuro
+- Le mercredi après-midi : échographie ostéo-articulaire, scanner digestif
+- Le jeudi matin : scanner digestif, scanner pédiatrique
+- Le vendredi matin : échographie digestive, échographie ostéoarticulaire, IRM neuro
+- Le vendredi après-midi : échographie ostéoarticulaire, scanner digestif, scanner thoracique
+- Tous les postes ne doivent pas obligatoirement être remplis
+- Si une personne est notée absente sur une demi-journée, elle ne peut pas être postée sur cette demi-journée
+- Chaque personne doit passer dans tous les postes d'une spécialité sur une semaine (mais une seule spécialité par semaine) et être passée dans toutes les spécialités à la fin des 6 semaines
+- Chaque personne externe ne doit passer qu'une seule fois sur chaque poste dans la période de 6 semaines
+- La spécialité "CTV" comprend 3 postes : cours avec M. Rémond, radiographie thoracique et scanner thoracique
+- La spécialité "digestif" comprend 2 postes : échographie digestive et scanner digestif
+- La spécialité "ostéoarticulaire" comprend 3 postes : radiographie ostéoarticulaire, échographie ostéoarticulaire et scanner ostéoarticulaire
+- La spécialité "pédiatrie" comprend 3 postes : radiographie pédiatrique, échographie pédiatrique et scanner pédiatrique
+- La spécialité "autre" comprend 3 postes : échographie des urgences, IRM neuro et radiologie interventionnelle
+- Deux à trois personnes peuvent être postées en "cours avec M. Rémond"
+- Deux personnes peuvent être postées sur le poste "radiologie interventionnelle"
+- Deux personnes peuvent être postées sur le poste "scanner pédiatrique"
+- Pour les autres postes, il ne faut mettre qu'une personne à le fois

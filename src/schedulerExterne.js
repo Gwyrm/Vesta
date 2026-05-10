@@ -167,6 +167,11 @@ export function generateExterneSchedule(staff, startDate) {
     Object.fromEntries(staff.map(s => [s.id, {}]))
   );
 
+  // Suivi cumulé sur les 6 semaines : globalCoverage[staffId][postType] = nb d'occurrences.
+  // Règle : chaque personne ne doit passer qu'une seule fois sur chaque poste
+  // dans la période de 6 semaines (filtre hard, fallback soft si impossible).
+  const globalCoverage = Object.fromEntries(staff.map(s => [s.id, {}]));
+
   const isAbsent = (person, dateStr, period) =>
     person.absences.includes(`${dateStr}-${period}`);
 
@@ -200,23 +205,42 @@ export function generateExterneSchedule(staff, startDate) {
             continue;
           }
 
+          // Filtre hard sur l'unicité poste/personne sur 6 semaines —
+          // **règle qui ne s'applique qu'aux externes**. Les internes et
+          // les socles peuvent rejouer un poste sans contrainte. Si tous
+          // les externes éligibles ont déjà fait ce poste, on relâche
+          // pour ne pas laisser un poste vide.
+          let pool = candidates.filter(
+            s => s.role !== 'extern' ||
+                 (globalCoverage[s.id][postType] || 0) === 0
+          );
+          if (!pool.length) pool = candidates;
+
           // Privilégier la personne ayant le moins couvert ce type de poste
           // cette semaine → garantit le passage dans tous les postes de la spécialité
           const weekTotal = id =>
             Object.values(coverage[weekIdx][id]).reduce((a, b) => a + b, 0);
 
-          candidates.sort((a, b) => {
+          pool.sort((a, b) => {
+            // Tie-break par occurrences globales sur 6 semaines : pour
+            // les externes c'est essentiellement 0 ou 1 (filtre actif),
+            // pour les autres c'est un nivellement de charge.
+            const dgc = (globalCoverage[a.id][postType] || 0) -
+                        (globalCoverage[b.id][postType] || 0);
+            if (dgc !== 0) return dgc;
             const dc = (coverage[weekIdx][a.id][postType] || 0) -
                        (coverage[weekIdx][b.id][postType] || 0);
             if (dc !== 0) return dc;
             return weekTotal(a.id) - weekTotal(b.id);
           });
 
-          const sel = candidates[0];
+          const sel = pool[0];
           dayResult[period].push({ type: postType, staffId: sel.id });
           usedThisPeriod.add(sel.id);
           coverage[weekIdx][sel.id][postType] =
             (coverage[weekIdx][sel.id][postType] || 0) + 1;
+          globalCoverage[sel.id][postType] =
+            (globalCoverage[sel.id][postType] || 0) + 1;
         }
       }
 

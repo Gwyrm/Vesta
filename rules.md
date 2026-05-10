@@ -40,6 +40,8 @@ Règles externes :
 - Si une personne est notée absente sur une demi-journée, elle ne peut pas être postée sur cette demi-journée
 - Chaque personne doit passer dans tous les postes d'une spécialité sur une semaine (mais une seule spécialité par semaine) et être passée dans toutes les spécialités à la fin des 6 semaines
 - Chaque personne externe ne doit passer qu'une seule fois sur chaque poste dans la période de 6 semaines
+- Deux externes peuvent passer dans la même spécialité la même semaine (5 spécialités au total)
+- Quand un externe est absent toute la semaine (toutes les demi-journées du lundi au vendredi), il n'est pas considéré comme étant passé dans la spécialité de cette semaine ; la spécialité est reportée à la semaine suivante de présence
 - La spécialité "CTV" comprend 3 postes : cours avec M. Rémond, radiographie thoracique et scanner thoracique
 - La spécialité "digestif" comprend 2 postes : échographie digestive et scanner digestif
 - La spécialité "ostéoarticulaire" comprend 3 postes : radiographie ostéoarticulaire, échographie ostéoarticulaire et scanner ostéoarticulaire

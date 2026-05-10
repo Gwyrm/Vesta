@@ -235,20 +235,20 @@ export default function App() {
   const offCount = Object.keys(offs).length;
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
 
       {/* ── Barre supérieure ── */}
-      <header className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+      <header className="bg-white/85 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-30">
         <div className="max-w-screen-xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
           {/* Marque */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow">
-              <Calendar className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20 ring-1 ring-white/20">
+              <Calendar className="w-5 h-5 text-white" strokeWidth={2.5} />
             </div>
             <div className="leading-tight">
-              <p className="text-base font-bold text-slate-900 tracking-tight">Vesta Planning</p>
-              <p className="text-[11px] text-slate-400 font-medium">Service de Radiologie</p>
+              <p className="text-base font-bold text-slate-900 tracking-tight">Vesta</p>
+              <p className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Service de Radiologie</p>
             </div>
           </div>
 
@@ -259,22 +259,22 @@ export default function App() {
                 <select
                   value={month}
                   onChange={e => setMonth(Number(e.target.value))}
-                  className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white/90 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-colors"
                 >
                   {MONTH_NAMES.map((n, i) => <option key={i} value={i + 1}>{n}</option>)}
                 </select>
                 <select
                   value={year}
                   onChange={e => setYear(Number(e.target.value))}
-                  className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white/90 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-colors"
                 >
                   {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
                 <button
                   onClick={handleGenerateInterne}
                   disabled={spinning || interneStaff.length === 0}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-                             text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                  className="flex items-center gap-2 bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed
+                             text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-all shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-[0.98]"
                 >
                   <RefreshCw className={`w-4 h-4 ${spinning ? 'animate-spin' : ''}`} />
                   Générer
@@ -283,12 +283,12 @@ export default function App() {
                   <button
                     onClick={handleClearLocks}
                     title="Réinitialiser tous les verrous et les demi-journées off"
-                    className="flex items-center gap-1.5 bg-white border border-amber-300 hover:bg-amber-50
-                               text-amber-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-1.5 bg-amber-50/80 border border-amber-200 hover:bg-amber-100/80
+                               text-amber-800 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                   >
                     <Lock className="w-3.5 h-3.5" />
                     Effacer mes modifs
-                    <span className="bg-amber-100 text-amber-700 text-[10px] rounded-full px-1.5 py-0.5 font-semibold">
+                    <span className="bg-amber-200/70 text-amber-900 text-[10px] rounded-full px-1.5 py-0.5 font-bold tabular-nums">
                       {lockCount + offCount}
                     </span>
                   </button>
@@ -296,8 +296,8 @@ export default function App() {
                 {hasInterneSchedule && (
                   <button
                     onClick={() => exportXLSX(schedule, interneStaff, year, month)}
-                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700
-                               text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                    className="flex items-center gap-2 bg-gradient-to-br from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700
+                               text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-all shadow-md shadow-emerald-500/25 hover:shadow-emerald-500/40 active:scale-[0.98]"
                   >
                     <Download className="w-4 h-4" />
                     Excel
@@ -311,7 +311,7 @@ export default function App() {
                   type="date"
                   value={externeStartStr}
                   onChange={e => handleStartDateChange(e.target.value)}
-                  className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white/90 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-colors"
                 />
                 <span className="text-sm text-slate-500 font-medium shrink-0">Fin :</span>
                 <input
@@ -319,7 +319,7 @@ export default function App() {
                   value={externeEndStr}
                   min={externeStartStr}
                   onChange={e => handleEndDateChange(e.target.value)}
-                  className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white/90 hover:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-400 transition-colors"
                 />
                 <span className="text-xs text-slate-500 shrink-0">
                   ({externeWeekCount} sem.)
@@ -327,8 +327,8 @@ export default function App() {
                 <button
                   onClick={handleGenerateExterne}
                   disabled={externeSpinning || externeStaff.length === 0}
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-                             text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                  className="flex items-center gap-2 bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed
+                             text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-all shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 active:scale-[0.98]"
                 >
                   <RefreshCw className={`w-4 h-4 ${externeSpinning ? 'animate-spin' : ''}`} />
                   Générer
@@ -340,8 +340,8 @@ export default function App() {
       </header>
 
       {/* ── Onglets principaux (Internes / Externes) ── */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-screen-xl mx-auto px-4 flex">
+      <div className="bg-white/60 backdrop-blur-sm border-b border-slate-200/70">
+        <div className="max-w-screen-xl mx-auto px-4 flex gap-1 py-2">
           {[
             { id: 'internes', label: 'Internes & Socles', count: interneStaff.length },
             { id: 'externes', label: 'Externes',           count: externeStaff.length },
@@ -349,14 +349,15 @@ export default function App() {
             <button
               key={id}
               onClick={() => setMainTab(id)}
-              className={`flex items-center gap-2 px-5 py-3 text-sm font-semibold border-b-2 transition-colors
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all
                 ${mainTab === id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
             >
               {label}
-              <span className="ml-0.5 bg-slate-100 text-slate-600 text-[11px] rounded-full px-1.5 py-0.5 font-semibold">
+              <span className={`text-[11px] rounded-full px-1.5 py-0.5 font-bold tabular-nums
+                ${mainTab === id ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-700'}`}>
                 {count}
               </span>
             </button>
@@ -365,7 +366,7 @@ export default function App() {
       </div>
 
       {/* ── Sous-onglets (Planning / Personnel / Statistiques) ── */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="border-b border-slate-200/70">
         <div className="max-w-screen-xl mx-auto px-4 flex">
           {[
             { id: 'planning', label: 'Planning',     Icon: Calendar  },
@@ -375,18 +376,21 @@ export default function App() {
             <button
               key={id}
               onClick={() => setSubTab(id)}
-              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors
+              className={`flex items-center gap-2 px-5 py-3 text-sm font-medium relative transition-colors
                 ${subTab === id
-                  ? 'border-blue-600 text-blue-600'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'text-blue-600'
+                  : 'text-slate-500 hover:text-slate-900'
                 }`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon className="w-4 h-4" strokeWidth={subTab === id ? 2.5 : 2} />
               {label}
               {id === 'staff' && (
-                <span className="ml-1 bg-slate-100 text-slate-600 text-[11px] rounded-full px-1.5 py-0.5 font-semibold">
+                <span className="ml-1 bg-slate-100 text-slate-700 text-[11px] rounded-full px-1.5 py-0.5 font-bold tabular-nums">
                   {mainTab === 'internes' ? interneStaff.length : externeStaff.length}
                 </span>
+              )}
+              {subTab === id && (
+                <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-t-full" />
               )}
             </button>
           ))}
@@ -395,9 +399,9 @@ export default function App() {
 
       {/* ── Bandeaux d'avertissement ── */}
       {mainTab === 'internes' && interneTooFew && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
-          <div className="max-w-screen-xl mx-auto flex items-center gap-2 text-amber-700 text-sm">
-            <AlertTriangle className="w-4 h-4 shrink-0" />
+        <div className="bg-amber-50/80 border-b border-amber-200/80 px-4 py-2">
+          <div className="max-w-screen-xl mx-auto flex items-center gap-2 text-amber-800 text-sm font-medium">
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
             Moins de 4 membres dans l'équipe — certains postes resteront non assignés.
           </div>
         </div>

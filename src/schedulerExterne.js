@@ -132,21 +132,48 @@ export function computeWeekCount(startDate, endDate) {
 // ─── Rotation des spécialités ─────────────────────────────────────────────────
 
 /**
- * Construit la rotation des spécialités sur `weekCount` semaines.
- * rotation[weekIdx][staffId] = specialtyKey
- *
- * Chaque personne i suit le cycle : SPECIALTY_KEYS[(i + w) % 5].
- * Toutes les spécialités sont couvertes en 5 semaines ; les semaines
- * supplémentaires répètent le début du cycle.
+ * Détermine si une personne est absente sur **toutes** les demi-journées
+ * ouvrables d'une semaine (lundi matin → vendredi après-midi).
  */
-export function buildRotation(staff, weekCount = 6) {
-  return Array.from({ length: weekCount }, (_, w) => {
-    const week = {};
-    staff.forEach((s, i) => {
-      week[s.id] = SPECIALTY_KEYS[(i + w) % SPECIALTY_KEYS.length];
-    });
-    return week;
+function isFullyAbsentWeek(person, weekDays) {
+  const absences = new Set(person.absences);
+  for (const day of weekDays) {
+    const ds = formatDate(day);
+    if (!absences.has(`${ds}-morning`)) return false;
+    if (!absences.has(`${ds}-afternoon`)) return false;
+  }
+  return true;
+}
+
+/**
+ * Construit la rotation des spécialités sur `weekCount` semaines.
+ * rotation[weekIdx][staffId] = specialtyKey | null
+ *
+ * Chaque personne i suit le cycle SPECIALTY_KEYS[(i + step) % 5].
+ * Quand une personne est absente toute une semaine, elle ne consume pas
+ * son cycle (la spé sera reportée à la semaine suivante de présence) et
+ * la rotation pour elle ce week-là est `null`.
+ *
+ * Avec ≥ 6 externes, le modulo 5 fait que plusieurs externes partagent
+ * la même spécialité une même semaine — c'est explicitement autorisé.
+ */
+export function buildRotation(staff, weekCount = 6, weeks = null) {
+  const rotation = Array.from({ length: weekCount }, () => ({}));
+  staff.forEach((s, i) => {
+    let step = 0;
+    for (let w = 0; w < weekCount; w++) {
+      const fullyAbsent =
+        weeks != null && weeks[w] && isFullyAbsentWeek(s, weeks[w]);
+      if (fullyAbsent) {
+        rotation[w][s.id] = null;
+      } else {
+        rotation[w][s.id] =
+          SPECIALTY_KEYS[(i + step) % SPECIALTY_KEYS.length];
+        step++;
+      }
+    }
   });
+  return rotation;
 }
 
 // ─── Scheduler ───────────────────────────────────────────────────────────────
@@ -172,7 +199,7 @@ export function generateExterneSchedule(staff, startDate, weekCount = 6) {
     for (const [k, v] of getFrenchHolidays(y)) holidays.set(k, v);
   }
 
-  const rotation = buildRotation(staff, weekCount);
+  const rotation = buildRotation(staff, weekCount, weeks);
 
   // Suivi de la couverture par poste/personne/semaine pour favoriser
   // le passage dans tous les postes de la spécialité
@@ -210,6 +237,7 @@ export function generateExterneSchedule(staff, startDate, weekCount = 6) {
           const candidates = staff.filter(s =>
             !usedThisPeriod.has(s.id) &&
             !isAbsent(s, dateStr, period) &&
+            weekRotation[s.id] != null &&
             weekRotation[s.id] === postSpecialty
           );
 

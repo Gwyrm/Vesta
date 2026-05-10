@@ -158,8 +158,8 @@ function SpecialtyLegend() {
 }
 
 // ─── Composant principal ──────────────────────────────────────────────────────
-export default function ScheduleViewExterne({ schedule, rotation, staff, startDate, onScheduleChange }) {
-  const weeks = useMemo(() => getExterneWeeks(startDate), [startDate]);
+export default function ScheduleViewExterne({ schedule, rotation, staff, startDate, weekCount = 6, onScheduleChange }) {
+  const weeks = useMemo(() => getExterneWeeks(startDate, weekCount), [startDate, weekCount]);
 
   const holidays = useMemo(() => {
     const allDays = weeks.flat();

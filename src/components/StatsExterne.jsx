@@ -24,9 +24,9 @@ function computePostCounts(schedule, staff) {
 }
 
 // ─── Composant principal ──────────────────────────────────────────────────────
-export default function StatsExterne({ schedule, rotation, staff, startDate }) {
+export default function StatsExterne({ schedule, rotation, staff, startDate, weekCount = 6 }) {
   const hasData = Object.keys(schedule).length > 0;
-  const weeks   = getExterneWeeks(startDate);
+  const weeks   = getExterneWeeks(startDate, weekCount);
 
   if (!staff.length) {
     return (

@@ -96,11 +96,11 @@ export function getMondayOf(date) {
   return d;
 }
 
-/** Retourne 6 tableaux de 5 dates (lun–ven par semaine). */
-export function getExterneWeeks(startDate) {
+/** Retourne `weekCount` tableaux de 5 dates (lun–ven par semaine). */
+export function getExterneWeeks(startDate, weekCount = 6) {
   const weeks = [];
   const d = new Date(getMondayOf(startDate));
-  for (let w = 0; w < 6; w++) {
+  for (let w = 0; w < weekCount; w++) {
     const week = [];
     for (let i = 0; i < 5; i++) {
       week.push(new Date(d));
@@ -112,22 +112,35 @@ export function getExterneWeeks(startDate) {
   return weeks;
 }
 
-/** Liste plate des 30 jours ouvrés de la période de 6 semaines. */
-export function getExterneWeekdays(startDate) {
-  return getExterneWeeks(startDate).flat();
+/** Liste plate des jours ouvrés de la période. */
+export function getExterneWeekdays(startDate, weekCount = 6) {
+  return getExterneWeeks(startDate, weekCount).flat();
+}
+
+/**
+ * Calcule le nombre de semaines (incluses, lun-ven) couvrant [startDate, endDate].
+ * On compte combien de lundis tombent dans la fenêtre.
+ */
+export function computeWeekCount(startDate, endDate) {
+  const startMon = getMondayOf(startDate);
+  const endMon   = getMondayOf(endDate);
+  const ms       = endMon.getTime() - startMon.getTime();
+  if (ms < 0) return 1;
+  return Math.floor(ms / (7 * 24 * 3600 * 1000)) + 1;
 }
 
 // ─── Rotation des spécialités ─────────────────────────────────────────────────
 
 /**
- * Construit la rotation des spécialités.
+ * Construit la rotation des spécialités sur `weekCount` semaines.
  * rotation[weekIdx][staffId] = specialtyKey
  *
  * Chaque personne i suit le cycle : SPECIALTY_KEYS[(i + w) % 5].
- * Toutes les spécialités sont couvertes en 5 semaines ; la 6e répète la 1re.
+ * Toutes les spécialités sont couvertes en 5 semaines ; les semaines
+ * supplémentaires répètent le début du cycle.
  */
-export function buildRotation(staff) {
-  return Array.from({ length: 6 }, (_, w) => {
+export function buildRotation(staff, weekCount = 6) {
+  return Array.from({ length: weekCount }, (_, w) => {
     const week = {};
     staff.forEach((s, i) => {
       week[s.id] = SPECIALTY_KEYS[(i + w) % SPECIALTY_KEYS.length];
@@ -139,19 +152,19 @@ export function buildRotation(staff) {
 // ─── Scheduler ───────────────────────────────────────────────────────────────
 
 /**
- * Génère le planning externe sur 6 semaines.
+ * Génère le planning externe sur `weekCount` semaines (default 6).
  *
  * Retourne :
  *   schedule[dateStr] = {
  *     morning:   [{ type, staffId }],
  *     afternoon: [{ type, staffId }],
  *   }
- *   rotation: Array<{ [staffId]: specialtyKey }>  (longueur 6)
+ *   rotation: Array<{ [staffId]: specialtyKey }>  (longueur weekCount)
  */
-export function generateExterneSchedule(staff, startDate) {
+export function generateExterneSchedule(staff, startDate, weekCount = 6) {
   if (!staff.length) return { schedule: {}, rotation: [] };
 
-  const weeks   = getExterneWeeks(startDate);
+  const weeks   = getExterneWeeks(startDate, weekCount);
   const allDays = weeks.flat();
   const years   = new Set(allDays.map(d => d.getFullYear()));
   const holidays = new Map();
@@ -159,11 +172,11 @@ export function generateExterneSchedule(staff, startDate) {
     for (const [k, v] of getFrenchHolidays(y)) holidays.set(k, v);
   }
 
-  const rotation = buildRotation(staff);
+  const rotation = buildRotation(staff, weekCount);
 
   // Suivi de la couverture par poste/personne/semaine pour favoriser
   // le passage dans tous les postes de la spécialité
-  const coverage = Array.from({ length: 6 }, () =>
+  const coverage = Array.from({ length: weekCount }, () =>
     Object.fromEntries(staff.map(s => [s.id, {}]))
   );
 
@@ -205,16 +218,21 @@ export function generateExterneSchedule(staff, startDate) {
             continue;
           }
 
-          // Filtre hard sur l'unicité poste/personne sur 6 semaines —
+          // Filtre strict sur l'unicité poste/personne sur 6 semaines —
           // **règle qui ne s'applique qu'aux externes**. Les internes et
-          // les socles peuvent rejouer un poste sans contrainte. Si tous
-          // les externes éligibles ont déjà fait ce poste, on relâche
-          // pour ne pas laisser un poste vide.
-          let pool = candidates.filter(
+          // les socles peuvent rejouer un poste sans contrainte. Pas de
+          // fallback : si tous les externes éligibles ont déjà fait ce
+          // poste et qu'aucun non-externe n'est candidat, le poste reste
+          // vide (cohérent avec « tous les postes ne doivent pas
+          // obligatoirement être remplis »).
+          const pool = candidates.filter(
             s => s.role !== 'extern' ||
                  (globalCoverage[s.id][postType] || 0) === 0
           );
-          if (!pool.length) pool = candidates;
+          if (!pool.length) {
+            dayResult[period].push({ type: postType, staffId: null });
+            continue;
+          }
 
           // Privilégier la personne ayant le moins couvert ce type de poste
           // cette semaine → garantit le passage dans tous les postes de la spécialité

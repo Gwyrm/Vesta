@@ -15,6 +15,7 @@ import {
   generateExterneSchedule,
   getMondayOf,
   getExterneWeekdays,
+  computeWeekCount,
 } from './schedulerExterne.js';
 
 // ─── Personnel par défaut ─────────────────────────────────────────────────────
@@ -57,6 +58,12 @@ export default function App() {
 
   // ── État planning externes ────────────────────────────────────────────────
   const [externeStartDate,  setExterneStartDate]  = useState(() => getMondayOf(today));
+  // Default = vendredi de la 6e semaine (= startMon + 5 sem + 4 j).
+  const [externeEndDate,    setExterneEndDate]    = useState(() => {
+    const d = getMondayOf(today);
+    d.setDate(d.getDate() + 5 * 7 + 4);
+    return d;
+  });
   const [externeSchedule,   setExterneSchedule]   = useState({});
   const [externeRotation,   setExterneRotation]   = useState([]);
   const [externeSpinning,   setExterneSpinning]   = useState(false);
@@ -87,13 +94,21 @@ export default function App() {
   useEffect(() => {
     setExterneSchedule({});
     setExterneRotation([]);
-  }, [externeStartDate]);
+  }, [externeStartDate, externeEndDate]);
 
   // ── Dérivés ───────────────────────────────────────────────────────────────
   const interneStaff     = useMemo(() => staff.filter(s => s.role === 'intern' || s.role === 'socle'), [staff]);
   const externeStaff     = useMemo(() => staff.filter(s => s.role === 'extern'), [staff]);
-  const externeWeekdays  = useMemo(() => getExterneWeekdays(externeStartDate), [externeStartDate]);
+  const externeWeekCount = useMemo(
+    () => computeWeekCount(externeStartDate, externeEndDate),
+    [externeStartDate, externeEndDate],
+  );
+  const externeWeekdays  = useMemo(
+    () => getExterneWeekdays(externeStartDate, externeWeekCount),
+    [externeStartDate, externeWeekCount],
+  );
   const externeStartStr  = formatDate(externeStartDate);
+  const externeEndStr    = formatDate(externeEndDate);
 
   // ── Handlers de mise à jour du personnel (fusion dans le tableau partagé) ─
   const handleInterneStaffChange = useCallback(newInterneStaff => {
@@ -180,18 +195,28 @@ export default function App() {
   const handleGenerateExterne = useCallback(() => {
     setExterneSpinning(true);
     setTimeout(() => {
-      const result = generateExterneSchedule(externeStaff, externeStartDate);
+      const result = generateExterneSchedule(
+        externeStaff,
+        externeStartDate,
+        externeWeekCount,
+      );
       setExterneSchedule(result.schedule);
       setExterneRotation(result.rotation);
       setExterneSpinning(false);
     }, 60);
-  }, [externeStaff, externeStartDate]);
+  }, [externeStaff, externeStartDate, externeWeekCount]);
 
   // ── Changement de date de début externes ──────────────────────────────────
   const handleStartDateChange = (value) => {
     if (!value) return;
     const [y, m, d] = value.split('-').map(Number);
     setExterneStartDate(getMondayOf(new Date(y, m - 1, d)));
+  };
+
+  const handleEndDateChange = (value) => {
+    if (!value) return;
+    const [y, m, d] = value.split('-').map(Number);
+    setExterneEndDate(new Date(y, m - 1, d));
   };
 
   // ── Computed ──────────────────────────────────────────────────────────────
@@ -288,6 +313,17 @@ export default function App() {
                   onChange={e => handleStartDateChange(e.target.value)}
                   className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <span className="text-sm text-slate-500 font-medium shrink-0">Fin :</span>
+                <input
+                  type="date"
+                  value={externeEndStr}
+                  min={externeStartStr}
+                  onChange={e => handleEndDateChange(e.target.value)}
+                  className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-xs text-slate-500 shrink-0">
+                  ({externeWeekCount} sem.)
+                </span>
                 <button
                   onClick={handleGenerateExterne}
                   disabled={externeSpinning || externeStaff.length === 0}
@@ -405,6 +441,7 @@ export default function App() {
                 rotation={externeRotation}
                 staff={externeStaff}
                 startDate={externeStartDate}
+                weekCount={externeWeekCount}
                 onScheduleChange={setExterneSchedule}
               />
             )}
@@ -422,6 +459,7 @@ export default function App() {
                 rotation={externeRotation}
                 staff={externeStaff}
                 startDate={externeStartDate}
+                weekCount={externeWeekCount}
               />
             )}
           </>

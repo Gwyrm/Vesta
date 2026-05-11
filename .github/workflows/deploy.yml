@@ -29,7 +29,11 @@ jobs:
           node-version: 24
           cache: npm
 
-      - run: npm ci
+      # `npm ci` would be stricter, but the lockfile is generated on
+      # macOS arm64 (npm 11) and doesn't carry the Linux-only optional
+      # binaries (e.g. @emnapi/core, @esbuild/linux-x64) that the Linux
+      # runner needs. `npm install` tolerates that gap.
+      - run: npm install --no-audit --no-fund
 
       - run: npm test
 
